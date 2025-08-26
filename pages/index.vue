@@ -1,206 +1,248 @@
 <script setup lang="ts">
-import NumberFlow from '@number-flow/vue'
-import { Activity, CreditCard, DollarSign, Users } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
 
-const dataCard = ref({
-  totalRevenue: 0,
-  totalRevenueDesc: 0,
-  subscriptions: 0,
-  subscriptionsDesc: 0,
-  sales: 0,
-  salesDesc: 0,
-  activeNow: 0,
-  activeNowDesc: 0,
-})
+const client = useSupabaseClient()
+const orders = ref([])
+const selectedOrder = ref(null)
 
-const dataRecentSales = [
+const statusOptions = [
   {
-    name: 'Olivia Martin',
-    email: 'olivia.martin@email.com',
-    amount: 1999,
+    value: 'received',
+    description: 'Order has been received'
   },
   {
-    name: 'Jackson Lee',
-    email: 'jackson.lee@email.com',
-    amount: 39,
+    value: 'preparing',
+    description: 'Order is being prepared'
   },
   {
-    name: 'Isabella Nguyen',
-    email: 'isabella.nguyen@email.com',
-    amount: 299,
+    value: 'delivering',
+    description: 'Order is out for delivery'
   },
   {
-    name: 'William Kim',
-    email: 'will@email.com',
-    amount: 99,
-  },
-  {
-    name: 'Sofia Davis',
-    email: 'sofia.davis@email.com',
-    amount: 39,
-  },
+    value: 'delivered',
+    description: 'Order has been delivered'
+  }
 ]
 
-onMounted(() => {
-  dataCard.value = {
-    totalRevenue: 45231.89,
-    totalRevenueDesc: 20.1 / 100,
-    subscriptions: 2350,
-    subscriptionsDesc: 180.5 / 100,
-    sales: 12234,
-    salesDesc: 45 / 100,
-    activeNow: 573,
-    activeNowDesc: 201,
+// Fetch orders from Supabase
+async function fetchOrders() {
+  try {
+    const { data, error } = await client
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    orders.value = data
+  } catch (error) {
+    console.error('Error fetching orders:', error)
   }
+}
+
+// Update order status
+async function updateStatus(orderId: string, newStatus: string) {
+  try {
+    const { error } = await client
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId)
+
+    if (error) throw error
+    await fetchOrders()
+  } catch (error) {
+    console.error('Error updating order status:', error)
+  }
+}
+
+// Initialize data
+onMounted(() => {
+  fetchOrders()
 })
 </script>
 
 <template>
-  <div class="w-full flex flex-col gap-4">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-2xl font-bold tracking-tight">
-        Dashboard
-      </h2>
-      <div class="flex items-center space-x-2">
-        <BaseDateRangePicker />
-        <Button>Download</Button>
+  <div class="w-full min-h-screen bg-background p-4">
+    <!-- Orders View -->
+    <div class="w-full flex gap-4">
+      <!-- Orders List -->
+      <div class="w-2/3 grid gap-4">
+        <h2 class="text-2xl font-bold tracking-tight">Orders</h2>
+        
+        <div 
+          v-for="order in orders" 
+          :key="order.id" 
+          class="bg-card text-card-foreground rounded-lg border shadow-sm cursor-pointer transition-colors hover:bg-accent"
+          :class="{ 'border-primary': selectedOrder?.id === order.id }"
+          @click="selectedOrder = order"
+        >
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold">Order #{{ order.id.slice(0, 8) }}</h3>
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
+                {{ order.status }}
+              </span>
+            </div>
+          </div>
+          <div class="p-6 pt-0">
+            <div class="grid gap-2">
+              <div v-if="order.order_items">
+                <!-- Pizza items -->
+                <div v-if="order.order_items.pizza && order.order_items.pizza.length > 0">
+                  <div v-for="(item, index) in order.order_items.pizza" :key="'pizza-'+index" class="flex justify-between">
+                    <span>1x {{ item.name }} ({{ item.size }})</span>
+                    <span class="text-muted-foreground">{{ item.price }}€</span>
+                  </div>
+                </div>
+                
+                <!-- Combo items -->
+                <div v-if="order.order_items.combo && order.order_items.combo.length > 0">
+                  <div v-for="(item, index) in order.order_items.combo" :key="'combo-'+index" class="flex justify-between">
+                    <span>1x {{ item.name }}</span>
+                    <span class="text-muted-foreground">{{ item.price }}€</span>
+                  </div>
+                </div>
+                
+                <!-- Panini items -->
+                <div v-if="order.order_items.panini && order.order_items.panini.length > 0">
+                  <div v-for="(item, index) in order.order_items.panini" :key="'panini-'+index" class="flex justify-between">
+                    <span>1x {{ item.name }}</span>
+                    <span class="text-muted-foreground">{{ item.price }}€</span>
+                  </div>
+                </div>
+                
+                <!-- Texmex items -->
+                <div v-if="order.order_items.texmex && order.order_items.texmex.length > 0">
+                  <div v-for="(item, index) in order.order_items.texmex" :key="'texmex-'+index" class="flex justify-between">
+                    <span>1x {{ item.name }}</span>
+                    <span class="text-muted-foreground">{{ item.price }}€</span>
+                  </div>
+                </div>
+                
+                <!-- Tortilla items -->
+                <div v-if="order.order_items.tortilla && order.order_items.tortilla.length > 0">
+                  <div v-for="(item, index) in order.order_items.tortilla" :key="'tortilla-'+index" class="flex justify-between">
+                    <span>1x {{ item.name }}</span>
+                    <span class="text-muted-foreground">{{ item.price }}€</span>
+                  </div>
+                </div>
+                
+                <!-- Extras items -->
+                <div v-if="order.order_items.extras && order.order_items.extras.length > 0">
+                  <div v-for="(item, index) in order.order_items.extras" :key="'extras-'+index" class="flex justify-between">
+                    <span>1x {{ item.name }}</span>
+                    <span class="text-muted-foreground">{{ item.price }}€</span>
+                  </div>
+                </div>
+                
+                <!-- No items message -->
+                <div v-if="!order.order_items.pizza?.length && !order.order_items.combo?.length && !order.order_items.panini?.length && !order.order_items.texmex?.length && !order.order_items.tortilla?.length && !order.order_items.extras?.length" class="text-muted-foreground">
+                  No items in order
+                </div>
+              </div>
+              <div v-else class="text-muted-foreground">
+                No items in order
+              </div>
+              <div class="flex justify-between font-bold mt-2 pt-2 border-t">
+                <span>Total</span>
+                <span>{{ Number(order.total_price || 0).toFixed(2) }}€</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Details -->
+      <div class="w-1/3" v-if="selectedOrder">
+        <div class="bg-card text-card-foreground rounded-lg border shadow-sm">
+          <div class="p-6">
+            <h3 class="text-lg font-semibold">Order Details #{{ selectedOrder.id.slice(0, 8) }}</h3>
+          </div>
+          <div class="p-6 pt-0 grid gap-4">
+            <div class="grid gap-2">
+              <h4 class="font-semibold">Customer</h4>
+              <p v-if="selectedOrder.customer_info">{{ selectedOrder.customer_info.name }}</p>
+              <p v-else class="text-muted-foreground">No customer information</p>
+              <p class="text-muted-foreground">{{ new Date(selectedOrder.created_at).toLocaleString() }}</p>
+            </div>
+
+            <div class="grid gap-2">
+              <h4 class="font-semibold">Items</h4>
+              <div v-if="selectedOrder.order_items">
+                <!-- Pizza items -->
+                <div v-if="selectedOrder.order_items.pizza && selectedOrder.order_items.pizza.length > 0">
+                  <div v-for="(item, index) in selectedOrder.order_items.pizza" :key="'pizza-detail-'+index">
+                    1x {{ item.name }} ({{ item.size }}) - {{ item.price }}€
+                  </div>
+                </div>
+                
+                <!-- Combo items -->
+                <div v-if="selectedOrder.order_items.combo && selectedOrder.order_items.combo.length > 0">
+                  <div v-for="(item, index) in selectedOrder.order_items.combo" :key="'combo-detail-'+index">
+                    1x {{ item.name }} - {{ item.price }}€
+                  </div>
+                </div>
+                
+                <!-- Panini items -->
+                <div v-if="selectedOrder.order_items.panini && selectedOrder.order_items.panini.length > 0">
+                  <div v-for="(item, index) in selectedOrder.order_items.panini" :key="'panini-detail-'+index">
+                    1x {{ item.name }} - {{ item.price }}€
+                  </div>
+                </div>
+                
+                <!-- Texmex items -->
+                <div v-if="selectedOrder.order_items.texmex && selectedOrder.order_items.texmex.length > 0">
+                  <div v-for="(item, index) in selectedOrder.order_items.texmex" :key="'texmex-detail-'+index">
+                    1x {{ item.name }} - {{ item.price }}€
+                  </div>
+                </div>
+                
+                <!-- Tortilla items -->
+                <div v-if="selectedOrder.order_items.tortilla && selectedOrder.order_items.tortilla.length > 0">
+                  <div v-for="(item, index) in selectedOrder.order_items.tortilla" :key="'tortilla-detail-'+index">
+                    1x {{ item.name }} - {{ item.price }}€
+                  </div>
+                </div>
+                
+                <!-- Extras items -->
+                <div v-if="selectedOrder.order_items.extras && selectedOrder.order_items.extras.length > 0">
+                  <div v-for="(item, index) in selectedOrder.order_items.extras" :key="'extras-detail-'+index">
+                    1x {{ item.name }} - {{ item.price }}€
+                  </div>
+                </div>
+                
+                <!-- No items message -->
+                <div v-if="!selectedOrder.order_items.pizza?.length && !selectedOrder.order_items.combo?.length && !selectedOrder.order_items.panini?.length && !selectedOrder.order_items.texmex?.length && !selectedOrder.order_items.tortilla?.length && !selectedOrder.order_items.extras?.length" class="text-muted-foreground">
+                  No items in order
+                </div>
+              </div>
+              <div v-else class="text-muted-foreground">
+                No items in order
+              </div>
+            </div>
+
+            <div class="grid gap-2">
+              <h4 class="font-semibold">Status</h4>
+              <select 
+                v-model="selectedOrder.status" 
+                @change="updateStatus(selectedOrder.id, selectedOrder.status)"
+                class="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
+              >
+                <option 
+                  v-for="status in statusOptions" 
+                  :key="status.value" 
+                  :value="status.value"
+                >
+                  {{ status.value }} - {{ status.description }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <main class="flex flex-1 flex-col gap-4 md:gap-8">
-      <div class="grid gap-4 lg:grid-cols-4 md:grid-cols-2 md:gap-8">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Total Revenue
-            </CardTitle>
-            <DollarSign class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">
-              <NumberFlow
-                :value="dataCard.totalRevenue"
-                :format="{ style: 'currency', currency: 'USD', trailingZeroDisplay: 'stripIfInteger' }"
-              />
-            </div>
-            <p class="text-xs text-muted-foreground">
-              <NumberFlow
-                :value="dataCard.totalRevenueDesc"
-                prefix="+"
-                :format="{ style: 'percent', minimumFractionDigits: 1 }"
-              />
-              from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Subscriptions
-            </CardTitle>
-            <Users class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">
-              <NumberFlow
-                :value="dataCard.subscriptions"
-                prefix="+"
-              />
-            </div>
-            <p class="text-xs text-muted-foreground">
-              <NumberFlow
-                :value="dataCard.subscriptionsDesc"
-                prefix="+"
-                :format="{ style: 'percent', minimumFractionDigits: 1 }"
-              /> from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Sales
-            </CardTitle>
-            <CreditCard class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">
-              <NumberFlow
-                :value="dataCard.sales"
-                prefix="+"
-              />
-            </div>
-            <p class="text-xs text-muted-foreground">
-              <NumberFlow
-                :value="dataCard.salesDesc"
-                prefix="+"
-                :format="{ style: 'percent', minimumFractionDigits: 1 }"
-              /> from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle class="text-sm font-medium">
-              Active Now
-            </CardTitle>
-            <Activity class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">
-              <NumberFlow
-                :value="dataCard.activeNow"
-                prefix="+"
-              />
-            </div>
-            <p class="text-xs text-muted-foreground">
-              <NumberFlow
-                :value="dataCard.activeNowDesc"
-                prefix="+"
-              /> since last hour
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 md:gap-8">
-        <Card class="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
-          </CardHeader>
-          <CardContent class="pl-2">
-            <DashboardOverview />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-          </CardHeader>
-          <CardContent class="grid gap-8">
-            <div
-              v-for="recentSales in dataRecentSales" :key="recentSales.name"
-              class="flex items-center gap-4"
-            >
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarFallback>{{ recentSales.name.split(' ').map((n) => n[0]).join('') }}</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">
-                  {{ recentSales.name }}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  {{ recentSales.email }}
-                </p>
-              </div>
-              <div class="ml-auto font-medium">
-                <NumberFlow
-                  :value="recentSales.amount"
-                  :format="{ style: 'currency', currency: 'USD', trailingZeroDisplay: 'stripIfInteger' }"
-                  prefix="+"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
   </div>
 </template>
+
+<style scoped>
+/* Add any additional custom styles here */
+</style>

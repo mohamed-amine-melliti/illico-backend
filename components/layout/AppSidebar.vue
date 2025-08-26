@@ -15,20 +15,20 @@ const teams: {
   plan: string
 }[] = [
   {
-    name: 'Acme Inc',
+    name: 'Illico Pizza',
     logo: 'i-lucide-gallery-vertical-end',
     plan: 'Enterprise',
   },
-  {
-    name: 'Acme Corp.',
-    logo: 'i-lucide-audio-waveform',
-    plan: 'Startup',
-  },
-  {
-    name: 'Evil Corp.',
-    logo: 'i-lucide-command',
-    plan: 'Free',
-  },
+  // {
+  //   name: 'Acme Corp.',
+  //   logo: 'i-lucide-audio-waveform',
+  //   plan: 'Startup',
+  // },
+  // {
+  //   name: 'Evil Corp.',
+  //   logo: 'i-lucide-command',
+  //   plan: 'Free',
+  // },
 ]
 
 const user: {
@@ -36,8 +36,8 @@ const user: {
   email: string
   avatar: string
 } = {
-  name: 'Dian Pratama',
-  email: 'dianpratama2@gmail.com',
+  name: 'Ulmus Tech',
+  email: 'ulmustech@gmail.com',
   avatar: '/avatars/avatartion.png',
 }
 
@@ -48,7 +48,7 @@ const { sidebar } = useAppSettings()
   <Sidebar :collapsible="sidebar.collapsible" :side="sidebar.side" :variant="sidebar.variant">
     <SidebarHeader>
       <LayoutSidebarNavHeader :teams="teams" />
-      <Search />
+      <!-- <Search /> -->
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup v-for="(nav, indexGroup) in navMenu" :key="indexGroup">
@@ -61,9 +61,9 @@ const { sidebar } = useAppSettings()
         <component :is="resolveNavItemComponent(item)" v-for="(item, index) in navMenuBottom" :key="index" :item="item" size="sm" />
       </SidebarGroup>
     </SidebarContent>
-    <SidebarFooter>
+    <!-- <SidebarFooter>
       <LayoutSidebarNavFooter :user="user" />
-    </SidebarFooter>
+    </SidebarFooter> -->
     <SidebarRail />
   </Sidebar>
 </template>

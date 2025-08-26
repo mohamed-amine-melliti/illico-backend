@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     '@nuxt/icon',
     '@pinia/nuxt',
     '@nuxtjs/color-mode',
+    '@nuxtjs/supabase'
   ],
 
   css: [
@@ -40,6 +41,10 @@ export default defineNuxtConfig({
     dirs: [
       './lib',
     ],
+  },
+
+  supabase: {
+    redirect: false
   },
 
   compatibilityDate: '2024-12-14',
