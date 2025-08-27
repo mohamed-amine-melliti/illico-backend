@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
+definePageMeta({
+  middleware: ['auth']
+})
 
 const client = useSupabaseClient()
+console.log('Supabase client:', client)
 const orders = ref([])
 const selectedOrder = ref(null)
+const authStore = useAuthStore()
 
 const statusOptions = [
   {
@@ -26,16 +33,57 @@ const statusOptions = [
 
 // Fetch orders from Supabase
 async function fetchOrders() {
+  console.log('Fetching orders...')
   try {
+    // Check if client is available
+    if (!client) {
+      console.error('Supabase client is not initialized')
+      orders.value = []
+      return
+    }
+
+    // List available tables for debugging
+    console.log('Attempting to fetch from Supabase...')
+    
+    // Check if the table exists by querying system tables
+    try {
+      const { data: tableData, error: tableError } = await client
+        .from('orders')
+        .select('id')
+        .limit(1)
+      
+      console.log('Table check result:', tableError ? 'Error' : 'Success', tableData)
+      
+      if (tableError) {
+        console.error('Table check error:', tableError)
+      }
+    } catch (tableCheckError) {
+      console.error('Error checking table:', tableCheckError)
+    }
+    
+    // Try with a simpler query first
     const { data, error } = await client
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false })
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase error:', error.message, error.details, error.hint)
+      orders.value = []
+      return
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('No orders found in database')
+      orders.value = []
+      return
+    }
+    
+    console.log('Orders fetched successfully:', data.length, 'orders')
+    console.log('First order data:', data[0])
     orders.value = data
   } catch (error) {
     console.error('Error fetching orders:', error)
+    orders.value = []
   }
 }
 
@@ -62,11 +110,28 @@ onMounted(() => {
 
 <template>
   <div class="w-full min-h-screen bg-background p-4">
+    <!-- Header with logout -->
+    <div class="w-full flex justify-between items-center mb-4">
+      <h1 class="text-3xl font-bold">Order Management System</h1>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-muted-foreground">Logged in as {{ authStore.user?.username }}</span>
+        <Button variant="outline" size="sm" @click="authStore.logout(); navigateTo('/admin/login')">
+          <Icon name="i-lucide-log-out" class="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </div>
+    </div>
+    
     <!-- Orders View -->
     <div class="w-full flex gap-4">
       <!-- Orders List -->
       <div class="w-2/3 grid gap-4">
         <h2 class="text-2xl font-bold tracking-tight">Orders</h2>
+        
+        <!-- No orders message -->
+        <div v-if="orders.length === 0" class="bg-card text-card-foreground rounded-lg border shadow-sm p-6 text-center">
+          <p class="text-muted-foreground">No orders found. Please check your database connection.</p>
+        </div>
         
         <div 
           v-for="order in orders" 
