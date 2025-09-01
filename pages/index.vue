@@ -6,8 +6,39 @@ definePageMeta({
   middleware: ['auth']
 })
 
-const client = useSupabaseClient()
-console.log('Supabase client:', client)
+// Replace Supabase client with PostgreSQL connection
+const pgConfig = {
+  connectionString: 'postgresql://postgres:postgres@5.135.246.80:5432/illico_pizza_db'
+}
+
+// Create a composable for PostgreSQL connection
+const usePgClient = () => {
+  return {
+    query: async (text, params) => {
+      try {
+        // In a real implementation, you would use a server-side API endpoint
+        // Direct database connections should not be made from the client-side
+        // This is a simplified example - in production, create a Nuxt server API endpoint
+        const response = await fetch('/api/db', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: text, params }),
+        })
+        
+        const result = await response.json()
+        return { data: result.data, error: result.error }
+      } catch (error) {
+        console.error('Database query error:', error)
+        return { data: null, error }
+      }
+    }
+  }
+}
+
+const pgClient = usePgClient()
+console.log('PostgreSQL client initialized')
 const orders = ref([])
 const selectedOrder = ref(null)
 const authStore = useAuthStore()
@@ -31,43 +62,17 @@ const statusOptions = [
   }
 ]
 
-// Fetch orders from Supabase
+// Fetch orders from PostgreSQL
 async function fetchOrders() {
   console.log('Fetching orders...')
   try {
-    // Check if client is available
-    if (!client) {
-      console.error('Supabase client is not initialized')
-      orders.value = []
-      return
-    }
-
-    // List available tables for debugging
-    console.log('Attempting to fetch from Supabase...')
+    console.log('Attempting to fetch from PostgreSQL...')
     
-    // Check if the table exists by querying system tables
-    try {
-      const { data: tableData, error: tableError } = await client
-        .from('orders')
-        .select('id')
-        .limit(1)
-      
-      console.log('Table check result:', tableError ? 'Error' : 'Success', tableData)
-      
-      if (tableError) {
-        console.error('Table check error:', tableError)
-      }
-    } catch (tableCheckError) {
-      console.error('Error checking table:', tableCheckError)
-    }
-    
-    // Try with a simpler query first
-    const { data, error } = await client
-      .from('orders')
-      .select('*')
+    // Query orders table
+    const { data, error } = await pgClient.query('SELECT * FROM orders')
 
     if (error) {
-      console.error('Supabase error:', error.message, error.details, error.hint)
+      console.error('PostgreSQL error:', error)
       orders.value = []
       return
     }
@@ -90,10 +95,10 @@ async function fetchOrders() {
 // Update order status
 async function updateStatus(orderId: string, newStatus: string) {
   try {
-    const { error } = await client
-      .from('orders')
-      .update({ status: newStatus })
-      .eq('id', orderId)
+    const { error } = await pgClient.query(
+      'UPDATE orders SET status = $1 WHERE id = $2',
+      [newStatus, orderId]
+    )
 
     if (error) throw error
     await fetchOrders()
