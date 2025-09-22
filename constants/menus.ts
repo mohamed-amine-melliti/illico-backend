@@ -9,11 +9,11 @@ export const navMenu: NavMenu[] = [
         icon: 'i-lucide-home',
         link: '/',
       },
-      // {
-      //   title: 'Email',
-      //   icon: 'i-lucide-mail',
-      //   link: '/email',
-      // },
+      {
+        title: 'Produits',
+        icon: 'i-lucide-chef-hat',
+        link: '/products',
+      },
       // {
       //   title: 'Tasks',
       //   icon: 'i-lucide-calendar-check-2',

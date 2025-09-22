@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import ProductList from '~/components/food/ProductList.vue'
 
 definePageMeta({
   middleware: ['auth']
 })
 
-// Remplacer le client Supabase par une connexion PostgreSQL
+// Configuration de la connexion PostgreSQL
 const pgConfig = {
-  connectionString: 'postgresql://postgres:postgres@5.135.246.80:5432/illico_pizza_db'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/illico_pizza_db'
 }
 
 // Créer un composable pour la connexion PostgreSQL
@@ -173,7 +174,7 @@ onMounted(() => {
               </svg>
             </div>
             <div>
-              <h1 class="text-3xl font-bold text-black">Gestion des Commandes</h1>
+              <h1 class="text-3xl font-bold text-black">Tableau de bord</h1>
               <p class="text-black">Gérer et suivre toutes les commandes</p>
             </div>
           </div>
