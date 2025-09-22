@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 
 // ---------- PostgreSQL connection ----------
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@5.135.246.80:5432/illico_pizza_db'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/illico_pizza_db'
 })
 
 export default defineEventHandler(async (event) => {
